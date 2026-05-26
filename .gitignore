@@ -15,6 +15,9 @@ temp/
 # Sessões/credenciais (nunca commitar)
 .env
 .env.*
+# Exceção: o template .env.example DEVE ser versionado
+!.env.example
+!**/.env.example
 *.pem
 *.key
 credentials.json

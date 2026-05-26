@@ -65,11 +65,13 @@ Utilize a ferramenta de busca JQL do seu MCP `jira-atendimento` para listar os c
 (Vertical in (Arrecadação, ISS) OR Vertical = Atendimento AND Sistema in ("Protocolo (Cloud)", "Cidadão Web (Cloud)", "Cidadão Web 3 (Web)", "Cidadão Web 4 (Fly)", "Cidadão Web 2", "Cidadão Web 2 (Web)")) AND "Equipe responsável" not in (Revenda, "Ferramenta de Conversão", Parceiros, Produto, "Produto extensões", Tribunais, Integrações) AND status not in ("Produto contratado", Reprovada) AND resolution = Unresolved AND (Município in ("Abdon Batista", Agrolândia, "Anita Garibaldi", Angelina, Anchieta, "Balneário Arroio do Silva", "Balneário Barra do Sul", "Balneário Camboriú", "Balneário Piçarras", Bandeirante, "Barra Bonita", "Barra Velha", "Bela Vista do Toldo", Belmonte, "Benedito Novo", Brunópolis, Caçador, Calmon, "Campo Alegre", "Capão Alto", Chapecó, Concórdia, "Dona Emma", "Erval Velho", Ermo, "Frei Rogério", Iraceminha, Imbuia, Ipira, Ipuaçu, Itá, Itajaí, Jupiá, Lacerdópolis, "Lajeado Grande", "Leoberto Leal", "Lindóia do Sul", "Luiz Alves", Luzerna, Mafra, Massaranduba, Meleiro, Modelo, "Morro da Fumaça", "Morro Grande", Penha, Peritiba, "Pescaria Brava", Pomerode, "Praia Grande", "Rio do Sul", "Rio Fortuna", "Rio Rufino", Saltinho, "Santa Terezinha", "São Bernardino", "São Bonifácio", "São Cristovão do Sul", "São João do Oeste", "São José do Cedro", "São Martinho", "São Miguel da Boa Vista", "São Pedro de Alcântara", Tangará, "Treze de Maio", Tigrinhos, Timbó, Treviso, Videira) OR Município in ("Campos Novos") AND Entidade = "CIMPLASC - CONSORCIO INTERMUNICIPAL DE SANEAMENTO BASICO MEIO AMBIENTE ATENCAO A SANIDADE DOS PRODUTOS DE ORIGEM AGROPECUARIA SEGURANCA ALIMENTAR - Campos Novos/SC") AND issuetype not in (Implantação) AND issuetype = Dúvida ORDER BY cf[10300] DESC, cf[24813] ASC, status DESC, cf[21500] DESC, issuetype ASC, Município ASC, cf[22902] ASC, assignee DESC
 ```
 
-## Passo 2: Filtro de Idempotência (Ignorar Analisados)
+## Passo 2: Filtro de Idempotência e Status (Ignorar Analisados/Fechados)
 
-Para cada chamado retornado na lista, antes de buscar soluções, utilize o MCP para ler os comentários existentes do chamado.
+Para cada chamado retornado na lista, antes de buscar soluções:
 
-**REGRA DE OURO:** Se houver QUALQUER comentário interno contendo o termo `[#IA-TRIAGEM-AUTOMATICA#]`, significa que você ou outra IA já analisou este chamado em dias anteriores. **Ignore este chamado imediatamente e passe para o próximo da fila**, sem realizar novas buscas ou ações nele.
+**REGRA DE OURO 1 — Idempotência:** Se houver QUALQUER comentário interno contendo o termo `[#IA-TRIAGEM-AUTOMATICA#]`, significa que você ou outra IA já analisou este chamado em dias anteriores. **Ignore este chamado imediatamente e passe para o próximo da fila**, sem realizar novas buscas ou ações nele.
+
+**REGRA DE OURO 2 — Status encerrado:** Verifique o status atual do chamado. Se estiver em `Fechado`, `Encerrado`, `Resolvido`, `Concluído`, `Triagem encerrada`, `Cancelado` ou `Reprovada`, **ignore** — o Jira não aceita comentários nesses status e a triagem deixou de ser útil. Embora a JQL filtre `resolution = Unresolved` no Passo 1, o estado pode mudar entre a coleta e o momento da postagem.
 
 ## Passo 3: Análise e Busca de Soluções (Regra de Negócio)
 
@@ -86,9 +88,11 @@ Se você encontrar soluções históricas válidas OU precisar adicionar uma an�
 
 O seu comentário interno deve seguir estritamente este formato em Markdown (omita as seções de conteúdo que não se aplicarem, mas mantenha a tag de identificação intacta):
 
+> **Atenção (limitação técnica):** O Jira da Betha tem encoding restrito no banco de dados e **não aceita caracteres Unicode fora do BMP** (emojis modernos como 🤖, 🚀, etc. quebram a API com HTTP 500). Use apenas acentuação latina, símbolos comuns e wiki markup do Jira. Evite emojis no corpo dos comentários gerados pela triagem. (Histórico: ver `docs/incidente_mcp_add_comment.md`.)
+
 ```markdown
 [#IA-TRIAGEM-AUTOMATICA#]
-🤖 **Triagem Automática de Soluções**
+**Triagem Automática de Soluções**
 Analisei este chamado em nossa base de conhecimento.
 
 **Possíveis Soluções (Extraídas do Jira):**
